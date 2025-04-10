@@ -21,7 +21,19 @@ void printUsage(const std::string& programName) {
               << "  " << programName << " /path/to/dir print\n";
 }
 
+fs::path get_executable_path() {
+	try
+	{
+		return fs::canonical("/proc/self/exe").parent_path();
+	}
+	catch (...) 
+	{
+		return fs::current_path();
+	}
+}
+
 std::shared_ptr< TaskQueueClient > rq;
+boost::asio::io_context io;
 
 int main( int argc, char** argv )
 {
@@ -34,74 +46,65 @@ int main( int argc, char** argv )
 
 	const std::string directory = argv[1];
 
-	boost::asio::io_context io;
-
 	rq = std::make_shared< RabbitMQ_TaskQueueClient >(io);
 
-	rq->connect("sher-lock-find.ru", "kalich", "kal-kalich", [&](bool connected) {
+	rq->connect("sher-lock-find.ru", "kalich", "kal-kalich", [directory, rq](bool connected) {
 		if (!connected) {
 			std::cerr << "Failed to connect to RabbitMQ" << std::endl;
 			exit(-1);
 		}
 
-			std::cout << "Successfuly connected to RabbitMQ" << std::endl;
+		std::cout << "Successfuly connected to RabbitMQ" << std::endl;
 
-			std::string my_unique_domen =	boost::asio::ip::host_name() +
-							fs::current_path().string() +
-							directory +
-							std::to_string(rand());
 
-			std::cout << my_unique_domen << '\n';
-
-			auto fileHandling = [&](const fs::path& directory)
+		auto fileHandling = [rq](fs::path directory, std::string user_queue)
+		{	
 			{
-				std::mutex tmp;	
-					
-			        std::unique_ptr< FileSeeker > fs = std::make_unique< FileSeeker > ();
-
-				fs->recursively_directory_action( directory, [&](const fs::path& filepath)
-				{
-					std::lock_guard<std::mutex> lock(tmp);
-					std::cout << "file : " << filepath << '\n';
-					json fileContent = JSON_FilePacker::file_to_json(filepath);
-					std::cout << fileContent.dump() << '\n';
-					
-					/*
-			                rq->enqueue_task( standardMainQueueName, filepath, [](bool success)
-					{
-						if (!success)
-							std::cerr << "Can't send data to queue!\n";
-					});
-					*/
-					JSON_FilePacker::json_to_file(fileContent);
-			        });
-
-				//rq->subscribe(standardMainQueueName, [](std::string str) { std::cout << "got : " << str << '\n'; });
+			        std::shared_ptr< FileSeeker > fs = std::make_shared< FileSeeker > ();
 				
-			};
+				fs->recursively_directory_action( directory, [rq](const fs::path& filepath)
+				{
+					std::cout << "file : " << filepath << '\n';
+					rq->enqueue_task( standardMainQueueName, filepath.string(), nullptr);
+					//json fileContent = JSON_FilePacker::file_to_json(filepath);
+					//fileContent["queue-id"] = my_unique_domen;
+					
+					//std::cout << fileContent.dump();
+				});
+			}
+			rq->delete_queue( user_queue, [](bool status) { io.stop(); } );
+		};
 
-			rq->is_queue_exist( standardMainQueueName, [&](bool success){
+		rq->create_queue( standardMainQueueName, [ fileHandling, directory ](bool success) {
+			if (!success)
+			{
+                        	std::cerr << "Can't create main queue : " << standardMainQueueName << '\n';
+				exit(-1);
+			}
+			
+			std::cout << "Successfuly created new main queue : " << standardMainQueueName << '\n';
+
+			std::string my_unique_domen =   boost::asio::ip::host_name() +
+							fs::current_path().string() + 
+							directory +
+							std::to_string(rand()) + "_queue";
+
+			rq->create_queue( my_unique_domen, [ my_unique_domen, directory, fileHandling ](bool success) {
 				if (!success)
 				{
-					rq->create_queue( standardMainQueueName, [&](bool success) {
-						if (!success)
-							std::cerr << "Can't create main queue : " << standardMainQueueName << '\n';
-						else
-						{
-							std::cout << "Successfuly created new main queue : " << standardMainQueueName << '\n';
+					std::cerr << "Can't create unique queue : " << my_unique_domen << '\n';
+					exit(-1);
+				}
+				
+				std::cout << "Successfuly created new unique queue : " << my_unique_domen << '\n';
 
-							fileHandling(directory);
-						}
-					});
-				}
-				else
-				{
-					std::cout << "Main Queue already exist!\n";
-					fileHandling(directory);
-				}
-			});
+				fileHandling(directory, my_unique_domen );
+                        });
+
 		});
+	});
 
+	std::cout << "Start io.run()\n";
 	io.run();
 
 	return 0;
