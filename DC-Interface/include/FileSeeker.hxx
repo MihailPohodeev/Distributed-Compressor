@@ -2,12 +2,12 @@
 #define _FILE_SEEKER_HXX_
 
 #include <string>
-#include <filesystem>
+#include <boost/filesystem.hpp>
 #include <memory>		// unique_ptr for taskPool_.
 #include <functional>		// for functors and functions - actions for files.
 #include <TaskPool.hxx>
 
-namespace fs = std::filesystem;
+namespace fs = boost::filesystem;
 
 // FILE-SEEKER is class for recursively searching files in directory and making some action with this files.
 
