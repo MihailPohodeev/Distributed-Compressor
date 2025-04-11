@@ -18,7 +18,8 @@ class JSON_FilePacker
 {
 public:
 	// encode file-content.
-	static std::string base64_encode(const std::vector<unsigned char>& data) {
+	static std::string base64_encode(const std::vector<unsigned char>& data) 
+	{
 		using namespace boost::archive::iterators;
 		using Base64Encode = base64_from_binary< transform_width< std::vector<unsigned char>::const_iterator, 6, 8 > >;
 
@@ -33,7 +34,8 @@ public:
 	}
 
 	// decode file-content.
-	static std::vector<unsigned char> base64_decode(const std::string& encoded) {
+	static std::vector<unsigned char> base64_decode(const std::string& encoded)
+	{
 		using namespace boost::archive::iterators;
 		using Base64Decode = transform_width< binary_from_base64<std::string::const_iterator>, 8, 6 >;
 		
@@ -48,13 +50,9 @@ public:
 	}
 	
 	// save file in current directory.
-	static void save_file(const std::string& filename, const std::vector<unsigned char>& data) {
-		fs::path current_path = fs::current_path();
-
-		fs::path filepath (filename);
-		std::string fileTitle = filepath.filename().string();
-
-		std::ofstream file( current_path.string() + "/" + fileTitle, std::ios::binary | std::ios::trunc );
+	static void save_file(const std::string& filepath, const std::vector<unsigned char>& data) 
+	{
+		std::ofstream file( filepath, std::ios::binary | std::ios::trunc );
 		if (!file) {
 			throw std::runtime_error("Could not open file for writing");
 		}
@@ -63,7 +61,8 @@ public:
 	}
 
 	// convert json to file.
-	static void json_to_file(const json& json_object) {
+	static void json_to_file(const json& json_object)
+	{
 		std::string filename = json_object.at("filepath");
 		std::string encoded_content = json_object.at("content");
 		std::vector<unsigned char> decoded_data = base64_decode(encoded_content);

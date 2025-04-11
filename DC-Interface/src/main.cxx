@@ -48,20 +48,42 @@ int main( int argc, char** argv )
 
 		auto fileHandling = [rq](fs::path directory, std::string user_queue)
 		{	
+			rq->subscribe( user_queue, [](std::string msg)
+			{
+				try
+				{
+					json msgJSON = json::parse(msg);
+					std::string filepath = msgJSON.at("filepath");
+					std::cout << std::string("got : ") + filepath + "\n";
+					JSON_FilePacker::json_to_file(msgJSON);
+				}
+				catch(const json::parse_error& e)
+				{
+					std::cerr << "Parse Error!\n Can't handle message : " << msg << '\n';
+				}
+				catch (const json::type_error& e)
+				{
+					std::cerr << "Type Error!\nCan't handle task :" << msg << '\n';
+				}
+				catch (const json::out_of_range& e)
+				{
+					std::cerr << "Out of Range Error!\nCan't handle task : " << msg << '\n';
+				}
+
+			}, nullptr );
+
 			{
 			        std::shared_ptr< FileSeeker > fs = std::make_shared< FileSeeker > ();
 				
 				fs->recursively_directory_action( directory, [rq, user_queue](const fs::path& filepath)
 				{
-					std::cout << "file : " << filepath << '\n';
-					//rq->enqueue_task( standardMainQueueName, filepath.string(), nullptr);
+					std::cout << filepath << '\n';
 					json fileContent = JSON_FilePacker::file_to_json(filepath);
 					fileContent["queue-id"] = user_queue;
 					rq->enqueue_task( standardMainQueueName, fileContent.dump(), nullptr );
-					//std::cout << fileContent.dump();
 				});
 			}
-			rq->delete_queue( user_queue, [](bool status) { io.stop(); } );
+			//rq->delete_queue( user_queue, [](bool status) { io.stop(); } );
 		};
 
 		rq->create_queue( standardMainQueueName, [ fileHandling, directory ](bool success) {

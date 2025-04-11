@@ -7,7 +7,8 @@
 
 class CompressorHandler : public TaskExecutor
 {
-	std::vector<unsigned char> create_zip_from_memory( const std::vector<unsigned char>& fileData, const std::string& filename );
+	// compress file from 'fileData' and return new vector with compressed data.
+	std::shared_ptr< std::vector<unsigned char> > create_zip_from_memory( const std::vector<unsigned char>& fileData, const std::string& filename );
 public:
 	void handle(const json& task, std::function<void(json)> callback = nullptr) override;
 };
