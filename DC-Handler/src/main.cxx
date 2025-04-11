@@ -6,6 +6,7 @@
 #include <boost/asio.hpp>
 #include <nlohmann/json.hpp>
 #include <JSON_FilePacker.hxx>
+#include <CompressHandler.hxx>
 
 namespace fs = boost::filesystem;
 using json = nlohmann::json;
@@ -23,20 +24,37 @@ int main()
 	unsigned int threadsCount = std::max(1u, std::thread::hardware_concurrency() - 1);
 	taskPool = std::make_shared< TaskPool > (threadsCount);
 
-	rq->connect("sher-lock-find.ru", "kalich", "kal-kalich", [rq](bool connected) {
+	std::shared_ptr<TaskExecutor> taskExecutor = std::make_shared<CompressorHandler>();
+
+	rq->connect("sher-lock-find.ru", "kalich", "kal-kalich", [rq, taskExecutor](bool connected) {
 		if (!connected) {
 			std::cerr << "Failed to connect to RabbitMQ" << std::endl;
 			exit(-1);
 		}
 
 		std::cout << "Successfuly connected to RabbitMQ" << std::endl;
-		rq->subscribe( standardMainQueueName, [](std::string msg)
+
+		
+
+		rq->subscribe( standardMainQueueName, [ taskExecutor ](std::string msg)
 		{
-			taskPool->add_task([msg]()
+			taskPool->add_task([msg, taskExecutor, rq]()
 			{
-				std::cout << msg << '\n';
+				try
+				{
+					json msgJSON = json::parse(msg);
+					// handle message 'msg'
+					taskExecutor->handle(msgJSON, [rq](json response)
+					{
+						JSON_FilePacker::json_to_file(response);
+					});
+				}
+				catch(const json::parse_error& e)
+				{
+					std::cerr << "Parse Error!\n Can't handle message : " << msg << '\n';
+				}
 			});
-		} );
+		});
 	});
 
 	io.run();

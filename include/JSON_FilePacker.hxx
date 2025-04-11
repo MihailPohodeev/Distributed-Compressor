@@ -16,6 +16,7 @@ using json = nlohmann::json;
 // JSON_FilePacker allows translate files to JSON format with all content.
 class JSON_FilePacker
 {
+public:
 	// encode file-content.
 	static std::string base64_encode(const std::vector<unsigned char>& data) {
 		using namespace boost::archive::iterators;
@@ -61,10 +62,9 @@ class JSON_FilePacker
 		file.close();
 	}
 
-public:
 	// convert json to file.
 	static void json_to_file(const json& json_object) {
-		std::string filename = json_object.at("filename");
+		std::string filename = json_object.at("filepath");
 		std::string encoded_content = json_object.at("content");
 		std::vector<unsigned char> decoded_data = base64_decode(encoded_content);
 		save_file(filename, decoded_data);
@@ -90,7 +90,7 @@ public:
 		}
 
 		json result;
-		result["filename"] = filepath;
+		result["filepath"] = filepath;
 		
 		std::vector<unsigned char> buffer((std::istreambuf_iterator<char>(file)), {});
 		file.close();

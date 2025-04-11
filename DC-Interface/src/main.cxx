@@ -21,17 +21,6 @@ void printUsage(const std::string& programName) {
               << "  " << programName << " /path/to/dir print\n";
 }
 
-fs::path get_executable_path() {
-	try
-	{
-		return fs::canonical("/proc/self/exe").parent_path();
-	}
-	catch (...) 
-	{
-		return fs::current_path();
-	}
-}
-
 std::shared_ptr< TaskQueueClient > rq;
 boost::asio::io_context io;
 
@@ -62,13 +51,13 @@ int main( int argc, char** argv )
 			{
 			        std::shared_ptr< FileSeeker > fs = std::make_shared< FileSeeker > ();
 				
-				fs->recursively_directory_action( directory, [rq](const fs::path& filepath)
+				fs->recursively_directory_action( directory, [rq, user_queue](const fs::path& filepath)
 				{
 					std::cout << "file : " << filepath << '\n';
-					rq->enqueue_task( standardMainQueueName, filepath.string(), nullptr);
-					//json fileContent = JSON_FilePacker::file_to_json(filepath);
-					//fileContent["queue-id"] = my_unique_domen;
-					
+					//rq->enqueue_task( standardMainQueueName, filepath.string(), nullptr);
+					json fileContent = JSON_FilePacker::file_to_json(filepath);
+					fileContent["queue-id"] = user_queue;
+					rq->enqueue_task( standardMainQueueName, fileContent.dump(), nullptr );
 					//std::cout << fileContent.dump();
 				});
 			}
@@ -98,7 +87,7 @@ int main( int argc, char** argv )
 				
 				std::cout << "Successfuly created new unique queue : " << my_unique_domen << '\n';
 
-				fileHandling(directory, my_unique_domen );
+				fileHandling( directory, my_unique_domen );
                         });
 
 		});
