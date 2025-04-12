@@ -5,6 +5,11 @@
 #include <functional>
 #include <mutex>
 
+/*
+ *	Implementation of TaskExecutor.
+ *	handling task (file in json) - compressing each file in .zip archive and invoking callback.
+ */
+
 class CompressorHandler : public TaskExecutor
 {
 	// compress file from 'fileData' and return new vector with compressed data.

@@ -6,8 +6,10 @@
 
 using json = nlohmann::json;
 
-// Interface for executing task in DC-Handler
-// It allows override task-handling in subclasses and perform different actions under task-messages.
+/*	 Interface for executing task in DC-Handler
+ * 	It allows override task-handling in subclasses and perform different actions on a task-messages.
+ */
+
 class TaskExecutor
 {
 public:
