@@ -1,4 +1,4 @@
-#include <ConfigLoader.hxx>
+#include <ConfigLoading/ConfigLoader.hxx>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -19,7 +19,7 @@
 
 ConfigLoader::ConfigLoader(std::string appName, std::string configFileName) : configName_( configFileName ), appName_( appName ) {}
 
-std::string ConfigLoader::get_config_file_path() const
+std::string ConfigLoader::get_config_file_path()
 {
 	std::string path;
 #ifdef _WIN32
@@ -40,7 +40,7 @@ std::string ConfigLoader::get_config_file_path() const
 	return path;
 }
 
-void ConfigLoader::create_file(const std::string& filePath) const
+void ConfigLoader::create_file(const std::string& filePath)
 {
 	fs::path filePATH = fs::path(filePath);
 	fs::path dir = filePATH.parent_path();
@@ -60,7 +60,7 @@ void ConfigLoader::create_file(const std::string& filePath) const
 	}
 }
 
-std::shared_ptr<json> ConfigLoader::get_config() const
+std::shared_ptr<json> ConfigLoader::get_config()
 {
 	std::shared_ptr<json> resultJSON = nullptr;
 
@@ -93,4 +93,14 @@ std::shared_ptr<json> ConfigLoader::get_config() const
 	}
 
 	return resultJSON;
+}
+
+json ConfigLoader::params_analizer(int argc, char** argv)
+{
+	json result;
+	for (int i = 0; i < argc; i++)
+	{
+		// TODO
+	}
+	return result;
 }

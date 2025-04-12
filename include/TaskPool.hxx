@@ -1,5 +1,5 @@
-#ifndef _TASK_POOL_HXX_
-#define _TASK_POOL_HXX_
+#ifndef TASK_POOL_HXX
+#define TASK_POOL_HXX
 
 #include <functional>
 #include <queue>

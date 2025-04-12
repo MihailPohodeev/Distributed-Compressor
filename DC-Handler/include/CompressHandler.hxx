@@ -1,5 +1,5 @@
-#ifndef _COMPRESS_HANDLER_HXX_
-#define _COMPRESS_HANDLER_HXX_
+#ifndef COMPRESS_HANDLER_HXX
+#define COMPRESS_HANDLER_HXX
 
 #include <TaskExecutor.hxx>
 #include <functional>

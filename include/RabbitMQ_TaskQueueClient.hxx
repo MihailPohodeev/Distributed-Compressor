@@ -1,5 +1,5 @@
-#ifndef _RABBITMQ_TASK_QUEUE_CLIENT_HXX_
-#define _RABBITMQ_TASK_QUEUE_CLIENT_HXX_
+#ifndef RABBITMQ_TASK_QUEUE_CLIENT_HXX
+#define RABBITMQ_TASK_QUEUE_CLIENT_HXX
 
 #include <string>
 #include <memory>

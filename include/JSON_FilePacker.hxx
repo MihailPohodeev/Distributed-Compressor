@@ -1,5 +1,5 @@
-#ifndef _JSON_FILE_PACKER_HXX_
-#define _JSON_FILE_PACKER_HXX_
+#ifndef JSON_FILE_PACKER_HXX
+#define JSON_FILE_PACKER_HXX
 
 #include <boost/archive/iterators/base64_from_binary.hpp>
 #include <boost/archive/iterators/binary_from_base64.hpp>

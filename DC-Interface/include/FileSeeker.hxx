@@ -1,5 +1,5 @@
-#ifndef _FILE_SEEKER_HXX_
-#define _FILE_SEEKER_HXX_
+#ifndef FILE_SEEKER_HXX
+#define FILE_SEEKER_HXX
 
 #include <string>
 #include <boost/filesystem.hpp>

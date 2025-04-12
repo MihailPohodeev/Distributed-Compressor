@@ -1,5 +1,5 @@
-#ifndef _TASK_QUEUE_CLIENT_HXX_
-#define _TASK_QUEUE_CLIENT_HXX_
+#ifndef TASK_QUEUE_CLIENT_HXX
+#define TASK_QUEUE_CLIENT_HXX
 
 #include <string>
 #include <memory>

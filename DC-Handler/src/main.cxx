@@ -7,7 +7,7 @@
 #include <nlohmann/json.hpp>
 #include <JSON_FilePacker.hxx>
 #include <CompressHandler.hxx>
-#include <ConfigLoader.hxx>
+#include <ConfigLoading/ConfigLoader.hxx>
 
 namespace fs = boost::filesystem;
 using json = nlohmann::json;
@@ -20,8 +20,8 @@ const std::string standardMainQueueName = "Main-Task-Queue";
 
 int main()
 {
-	ConfigLoader configLoader("DC-Handler");
-	std::shared_ptr<json> configJSON = configLoader.get_config();
+	//ConfigLoader configLoader("DC-Handler");
+	//std::shared_ptr<json> configJSON = configLoader.get_config();
 
 	rq = std::make_shared< RabbitMQ_TaskQueueClient >(io);
 
@@ -36,9 +36,7 @@ int main()
 			exit(-1);
 		}
 
-		std::cout << "Successfuly connected to RabbitMQ" << std::endl;
-
-		
+		std::cout << "Successfuly connected to RabbitMQ" << std::endl;		
 
 		rq->subscribe( standardMainQueueName, [ taskExecutor ](std::string msg)
 		{
@@ -48,6 +46,7 @@ int main()
 				{
 					json msgJSON = json::parse(msg);
 					std::string queueID = msgJSON["queue-id"];
+					
 					// handle message 'msg'
 					taskExecutor->handle(msgJSON, [rq, queueID](json response)
 					{

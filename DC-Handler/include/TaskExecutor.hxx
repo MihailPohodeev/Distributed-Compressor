@@ -1,5 +1,5 @@
-#ifndef _TASK_EXECUTOR_HXX_
-#define _TASK_EXECUTOR_HXX_
+#ifndef TASK_EXECUTOR_HXX
+#define TASK_EXECUTOR_HXX
 
 #include <functional>
 #include <nlohmann/json.hpp>

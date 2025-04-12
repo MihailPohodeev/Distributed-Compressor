@@ -14,13 +14,15 @@ class ConfigLoader
 	std::string configName_;
 	std::string appName_;
 
-	void create_file(const std::string& filePath) const;
+	void create_file(const std::string& filePath);
 public:
 	ConfigLoader(std::string appName, std::string configFileName = "config.json");
 
 	// get path of config file.
-	std::string get_config_file_path() const;
-	std::shared_ptr<json> get_config() const;
+	std::string get_config_file_path();
+	std::shared_ptr<json> get_config();
+	// analize params.
+	json params_analizer(int argc, char** argv);
 };
 
 #endif

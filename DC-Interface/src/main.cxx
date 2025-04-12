@@ -1,6 +1,9 @@
 #include <iostream>
 #include <string>
+#include <atomic>
+#include <chrono>
 #include <boost/filesystem.hpp>
+#include <boost/asio.hpp>
 #include <FileSeeker.hxx>
 #include <TaskPool.hxx>
 #include <RabbitMQ_TaskQueueClient.hxx>
@@ -23,6 +26,8 @@ void printUsage(const std::string& programName) {
 
 std::shared_ptr< TaskQueueClient > rq;
 boost::asio::io_context io;
+
+std::chrono::seconds timeout = std::chrono::seconds(3);
 
 int main( int argc, char** argv )
 {
@@ -47,8 +52,14 @@ int main( int argc, char** argv )
 
 
 		auto fileHandling = [rq](fs::path directory, std::string user_queue)
-		{	
-			rq->subscribe( user_queue, [](std::string msg)
+		{
+			std::shared_ptr< boost::asio::steady_timer > timer	= std::make_shared< boost::asio::steady_timer >(io, timeout); // timer for canceling operation after inactivity.
+			std::shared_ptr< std::atomic<int> > outgoingFiles 	= std::make_shared< std::atomic<int> >(0);		// number of outgoing files.
+			std::shared_ptr< std::atomic<int> > incomingFiles 	= std::make_shared< std::atomic<int> >(0);		// number of incoming files.
+			std::shared_ptr< std::atomic<bool>> isSendingFinished 	= std::make_shared< std::atomic<bool> >(false);		// is files outgoing fineshed -> 
+																	// -> we can compare outgoing and incoming files.
+
+			rq->subscribe( user_queue, [user_queue, outgoingFiles, incomingFiles, isSendingFinished, timer](std::string msg)
 			{
 				try
 				{
@@ -69,21 +80,50 @@ int main( int argc, char** argv )
 				{
 					std::cerr << "Out of Range Error!\nCan't handle task : " << msg << '\n';
 				}
+				(*incomingFiles)++;
+				timer->expires_after(timeout);
+
+				if (*isSendingFinished)
+				{
+					if (*incomingFiles == *outgoingFiles)
+					{
+						timer->cancel();
+						rq->delete_queue( user_queue, [](bool status) { io.stop(); } );
+					}
+				}
 
 			}, nullptr );
 
 			{
 			        std::shared_ptr< FileSeeker > fs = std::make_shared< FileSeeker > ();
 				
-				fs->recursively_directory_action( directory, [rq, user_queue](const fs::path& filepath)
+				fs->recursively_directory_action( directory, [rq, user_queue, outgoingFiles](const fs::path& filepath)
 				{
-					std::cout << filepath << '\n';
+					std::cout << std::string("file : ") + filepath.string() << '\n';
 					json fileContent = JSON_FilePacker::file_to_json(filepath);
 					fileContent["queue-id"] = user_queue;
 					rq->enqueue_task( standardMainQueueName, fileContent.dump(), nullptr );
+					(*outgoingFiles)++;
 				});
+
+				// here FileSeeker destroyed and all task in TaskPool inside FileSeeker finish work.
 			}
-			//rq->delete_queue( user_queue, [](bool status) { io.stop(); } );
+			(*isSendingFinished) = true;
+
+			timer->async_wait([rq, user_queue](const boost::system::error_code& ec)
+			{
+				// continue handling, if we restart without text message.
+				// stop timer without text message, if cancelled.
+				if (ec == boost::asio::error::operation_aborted)
+					return;
+				if (ec)
+				{
+					std::cerr << "timeout error!\n";
+					exit(-1);
+				}
+				std::cout << "The waiting time has expired. Please try again.\n";
+				rq->delete_queue( user_queue, [](bool status) { io.stop(); } );
+			});
 		};
 
 		rq->create_queue( standardMainQueueName, [ fileHandling, directory ](bool success) {
