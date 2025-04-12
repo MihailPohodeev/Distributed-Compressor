@@ -20,21 +20,28 @@ const std::string standardMainQueueName = "Main-Task-Queue";
 
 int main(int argc, char** argv)
 {
+	// --------------------------------------------------------------------------------
+	// receive parameters for handler work
 	QueueParams queueParams;
 	std::unique_ptr<ConfigLoader> configLoader = std::make_unique<DC_Handler_ConfigLoader>("Distributed_Handler");
 	std::string path;
 	configLoader->params_analizer(argc, argv, path, &queueParams);
 	configLoader->input_parameters(queueParams);
 	configLoader.reset();
+	// --------------------------------------------------------------------------------
 
-	std::shared_ptr< TaskQueueClient > rq = std::make_shared< RabbitMQ_TaskQueueClient >(io);
+	// create queue-client for communication with queue-server.
+	std::shared_ptr< TaskQueueClient > queueClient = std::make_shared< RabbitMQ_TaskQueueClient >(io);
 
+	// create task-pool with threads = logical cores of proccessor - 1 of 1.
 	unsigned int threadsCount = std::max(1u, std::thread::hardware_concurrency() - 1);
 	taskPool = std::make_shared< TaskPool > (threadsCount);
 
+	// create taskExecutor for Compressing incoming files.
 	std::shared_ptr<TaskExecutor> taskExecutor = std::make_shared<CompressorHandler>();
 
-	rq->connect(queueParams.host, queueParams.username, queueParams.password, [rq, taskExecutor](bool connected) {
+	// connect to the queue-server.
+	queueClient->connect(queueParams.host, queueParams.username, queueParams.password, [queueClient, taskExecutor](bool connected) {
 		if (!connected) {
 			std::cerr << "Failed to connect to RabbitMQ" << std::endl;
 			exit(-1);
@@ -42,19 +49,23 @@ int main(int argc, char** argv)
 
 		std::cout << "Successfuly connected to RabbitMQ" << std::endl;		
 
-		rq->subscribe( standardMainQueueName, [rq, taskExecutor](std::string msg)
+		// subscribe on main-task queue.
+		queueClient->subscribe( standardMainQueueName, [queueClient, taskExecutor](std::string msg)
 		{
-			taskPool->add_task([msg, taskExecutor, rq]()
+			// add new task for processing.
+			taskPool->add_task([msg, taskExecutor, queueClient]()
 			{
 				try
 				{
 					json msgJSON = json::parse(msg);
 					std::string queueID = msgJSON["queue-id"];
+					std::string queueFilepath = msgJSON.at("filepath");
+					std::cout << std::string("processing : ") + queueFilepath + "\n";
 					
 					// handle message 'msg'
-					taskExecutor->handle(msgJSON, [rq, queueID](json response)
+					taskExecutor->handle(msgJSON, [queueClient, queueID](json response)
 					{
-						rq->enqueue_task(queueID, response.dump(), nullptr);
+						queueClient->enqueue_task(queueID, response.dump(), nullptr);
 					});
 				}
 				catch(const json::parse_error& e)

@@ -29,7 +29,7 @@ void printUsage(const std::string& programName) {
 boost::asio::io_context io;
 
 // timeout for automatic interruption after inactivity -> we didn't receive files during this timeout - interrupt handling.
-std::chrono::seconds timeout = std::chrono::seconds(3);
+std::chrono::seconds timeout = std::chrono::seconds(5);
 
 int main( int argc, char** argv )
 {
@@ -92,6 +92,7 @@ int main( int argc, char** argv )
 			std::shared_ptr< std::atomic<bool>> isSendingFinished 	= std::make_shared< std::atomic<bool> >(false);		// is files outgoing fineshed -> 
 																	// -> we can compare outgoing and incoming files.
 
+			// subscribing on result queue and storing results of compressing.
 			queueClient->subscribe( user_queue, [user_queue, outgoingFiles, incomingFiles, isSendingFinished, timer, queueClient](std::string msg)
 			{
 				try
@@ -113,11 +114,15 @@ int main( int argc, char** argv )
 				{
 					std::cerr << "Out of Range Error!\nCan't handle task : " << msg << '\n';
 				}
+
+				// after result receiving increase 'incomingFiles' var and reset the timer.
 				(*incomingFiles)++;
 				timer->expires_after(timeout);
 
+				// if we sent all files - we can check, if incoming files count equal outgoing files count.
 				if (*isSendingFinished)
 				{
+					// if the number incoming and outgoing files is equal, cancel the timer and remove the result queue.
 					if (*incomingFiles == *outgoingFiles)
 					{
 						timer->cancel();
@@ -127,6 +132,8 @@ int main( int argc, char** argv )
 
 			}, nullptr );
 
+			// in next scope we create FileSeeker, that recursively traversing directory and add task in lambda-function to TaskPool.
+			// after all addition in TaskPool we should wait, while TaskPool complete work.
 			{
 			        std::shared_ptr< FileSeeker > fs = std::make_shared< FileSeeker > ();
 				
@@ -139,7 +146,7 @@ int main( int argc, char** argv )
 					(*outgoingFiles)++;
 				});
 
-				// here FileSeeker destroyed and all task in TaskPool inside FileSeeker finish work.
+				// here FileSeeker start to destroy and all task in TaskPool inside FileSeeker finish work.
 			}
 			(*isSendingFinished) = true;
 
@@ -159,6 +166,7 @@ int main( int argc, char** argv )
 			});
 		};
 
+		// create main queue - if it doesn't exist.
 		queueClient->create_queue( standardMainQueueName, [queueClient, fileHandling, directory ](bool success) {
 			if (!success)
 			{
@@ -168,11 +176,13 @@ int main( int argc, char** argv )
 			
 			std::cout << "Successfuly created new main queue : " << standardMainQueueName << '\n';
 
+			// generate unique domen for receiving data from handlers.
 			std::string my_unique_domen =   boost::asio::ip::host_name() +
 							fs::current_path().string() + 
 							directory +
 							std::to_string(rand()) + "_queue";
 
+			// create unique queue for receiving data from handlers
 			queueClient->create_queue( my_unique_domen, [ queueClient, my_unique_domen, directory, fileHandling ](bool success) {
 				if (!success)
 				{
@@ -182,6 +192,7 @@ int main( int argc, char** argv )
 				
 				std::cout << "Successfuly created new unique queue : " << my_unique_domen << '\n';
 
+				// if we have access to both queues -> start files handling.
 				fileHandling( directory, my_unique_domen );
                         });
 
