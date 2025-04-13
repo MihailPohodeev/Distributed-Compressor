@@ -83,6 +83,18 @@ Note: These parameters are not stored in a config file to allow running multiple
 
 Custom implementation of Task-Queue.(Not implemented yet)
 
+# Building
+
+This project requires some additional libraries:
+
+1. Boost
+2. LibArchive
+3.AMQP-CPP
+
+Before building, you should install these dependencies. For example, use `apt install libarchive-dev libboost-all-dev`. It is recommended to build AMQP-CPP from source.
+
+Next, go to the root directory of the project and build the project using CMake.
+
 # Project Structure
 ![UML](images/UML_diagram.png)
 
