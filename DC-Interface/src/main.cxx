@@ -7,6 +7,7 @@
 #include <FileSeeker.hxx>
 #include <TaskPool.hxx>
 #include <RabbitMQ_TaskQueueClient.hxx>
+#include <DC_Queue_TaskQueueClient.hxx>
 #include <boost/asio.hpp>
 #include <nlohmann/json.hpp>
 #include <JSON_FilePacker.hxx>
@@ -63,8 +64,6 @@ int main( int argc, char** argv )
 	// all data loaded -> remove config-loader.
 	configLoader.reset();
 	
-	if (queueParams.queueType == QueueType::DC_Queue)
-		throw std::runtime_error("DC_Queue communication not implemented!\n");
 	// --------------------------------------------------------------------------------
 
 	// we use random function for generating unique name for the queue from which we will extract the results.
@@ -74,16 +73,24 @@ int main( int argc, char** argv )
 	// TaskQueueClient - interface for specific implementation like RabbitMQ_TaskQueueClient of DC_Queue_TaskQueueClient.
 	// create queue client for communication with Queue-server.
 	std::shared_ptr< TaskQueueClient > queueClient;
-	queueClient = std::make_shared< RabbitMQ_TaskQueueClient >(io);
-	queueClient->connect(queueParams.host, queueParams.username, queueParams.password, [directory, queueClient](bool connected) {
+
+	if (queueParams.queueType == QueueType::RabbitMQ)
+		queueClient = std::make_shared< RabbitMQ_TaskQueueClient >(io);
+	else if (queueParams.queueType == QueueType::DC_Queue)
+		queueClient = std::make_shared< DC_Queue_TaskQueueClient >(io);
+	else
+		std::runtime_error("Invalid Queue-type!\n");
+
+	std::cout << (queueClient == nullptr ? "null" : "not-null") << '\n';
+	queueClient->connect(queueParams, [directory, queueClient](bool connected) {
 		if (!connected) {
-			std::cerr << "Failed to connect to RabbitMQ" << std::endl;
+			std::cerr << "Failed to connect to Queue-Server!\n";
 			exit(-1);
 		}
 
-		std::cout << "Successfuly connected to RabbitMQ" << std::endl;
+		std::cout << "Successfuly connected to Queue-Server!\n";
 
-
+		/*
 		auto fileHandling = [queueClient](fs::path directory, std::string user_queue)
 		{
 			std::shared_ptr< boost::asio::steady_timer > timer	= std::make_shared< boost::asio::steady_timer >(io, timeout); // timer for canceling operation after inactivity.
@@ -165,9 +172,10 @@ int main( int argc, char** argv )
 				queueClient->delete_queue( user_queue, [](bool status) { io.stop(); } );
 			});
 		};
+		*/
 
 		// create main queue - if it doesn't exist.
-		queueClient->create_queue( standardMainQueueName, [queueClient, fileHandling, directory ](bool success) {
+		queueClient->create_queue( standardMainQueueName, [queueClient, /*fileHandling,*/ directory ](bool success) {
 			if (!success)
 			{
                         	std::cerr << "Can't create main queue : " << standardMainQueueName << '\n';
@@ -175,6 +183,8 @@ int main( int argc, char** argv )
 			}
 			
 			std::cout << "Successfuly created new main queue : " << standardMainQueueName << '\n';
+
+			/*
 
 			// generate unique domen for receiving data from handlers.
 			std::string my_unique_domen =   boost::asio::ip::host_name() +
@@ -195,6 +205,7 @@ int main( int argc, char** argv )
 				// if we have access to both queues -> start files handling.
 				fileHandling( directory, my_unique_domen );
                         });
+			*/
 
 		});
 	});

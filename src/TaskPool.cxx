@@ -3,7 +3,7 @@
 
 // constructor.
 // threadsCount - is count of threads that would handle tasks.
-TaskPool::TaskPool(unsigned int threadsCount) : stopFlag_({false})
+TaskPool::TaskPool(unsigned int threadsCount) : stopFlag_(false)
 {
 	threads_.reserve(threadsCount);
 	for (unsigned int i = 0; i < threadsCount; ++i) {

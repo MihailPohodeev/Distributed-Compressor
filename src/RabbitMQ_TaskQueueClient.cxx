@@ -29,24 +29,21 @@ RabbitMQ_TaskQueueClient::~RabbitMQ_TaskQueueClient() {
 }
 
 // connect to the queue.
-void RabbitMQ_TaskQueueClient::connect(
-			const std::string& hostname,
-			const std::string& user,
-			const std::string& password,
-			std::function<void(bool)> callback )
+void RabbitMQ_TaskQueueClient::connect( const QueueParams& qp, std::function<void(bool)> callback )
 {
 	try {
-        std::string connectionString = "amqp://" + user + ":" + password + "@" + hostname + "/";
+
+	        std::string connectionString = "amqp://" + qp.username + ":" + qp.password + "@" + qp.host + "/";
         
-	connection_ = std::make_shared<AMQP::TcpConnection>(&handler_, AMQP::Address(connectionString));
+		connection_ = std::make_shared<AMQP::TcpConnection>(&handler_, AMQP::Address(connectionString));
         
-    	channel_ = std::make_shared<AMQP::TcpChannel>(connection_.get());
+	    	channel_ = std::make_shared<AMQP::TcpChannel>(connection_.get());
         
-      	channel_->onError([callback](const char* message) {
-       		callback(false);
-	});
-	channel_->onReady([callback]() {
-		callback(true);
+	      	channel_->onError([callback](const char* message) {
+	       		callback(false);
+		});
+		channel_->onReady([callback]() {
+			callback(true);
 	});
         
     	} catch (const std::exception& e) {

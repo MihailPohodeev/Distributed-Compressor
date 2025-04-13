@@ -30,8 +30,8 @@ public:
 	TaskPool& operator= ( const TaskPool& ) = delete;
 
 	// define move-copy constructor and move-operator=.
-	TaskPool(TaskPool&&) noexcept = default;
-	TaskPool& operator=(TaskPool&&) noexcept = default;
+	TaskPool(TaskPool&&) = delete;
+	TaskPool& operator=(TaskPool&&) = delete;
 
 	// add task to queue of tasks.
 	void add_task( const std::function<void()>& task );

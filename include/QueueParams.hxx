@@ -3,6 +3,9 @@
 
 #include <string>
 
+#define STANDARD_DC_QUEUE_PORT 15651
+
+
 // type of queue.
 enum class QueueType { None, RabbitMQ, DC_Queue };
 
@@ -12,11 +15,12 @@ enum class QueueType { None, RabbitMQ, DC_Queue };
 
 struct QueueParams
 {
-	QueueType queueType;					// type of queue [RabbitMQ, DC-Queue];
-	std::string username;					// username for RabbitMQ;
-	std::string password;					// password for RabbitMQ;
-	std::string host;					// host of Queue (hostname or ip);
-	QueueParams() : queueType(QueueType::None){}		// constructor.
+	QueueType 	queueType;				// type of queue [RabbitMQ, DC-Queue];
+	std::string 	username;				// username for RabbitMQ;
+	std::string 	password;				// password for RabbitMQ;
+	std::string 	host;					// host of Queue (hostname or ip);
+	short 		port;					// port of Queue (for DC-Queue)
+	QueueParams() : queueType(QueueType::None), port(STANDARD_DC_QUEUE_PORT) {} // constructor.
 };
 
 #endif

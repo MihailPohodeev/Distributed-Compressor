@@ -6,6 +6,8 @@
 #include <functional>
 #include <boost/asio.hpp>
 
+#include <QueueParams.hxx>
+
 // Interface of task queue client for futher redefinition.
 class TaskQueueClient
 {
@@ -15,8 +17,7 @@ public:
 	// constructor.
 	explicit TaskQueueClient( boost::asio::io_context& io );
 
-	virtual void connect(	const std::string& hostname,const std::string& user,
-				const std::string& password, std::function<void(bool)> callback ) = 0;						// connect to queue-server.
+	virtual void connect( const QueueParams& qp, std::function<void(bool)> callback ) = 0;							// connect to queue-server.
 	virtual void disconnect( std::function<void()> callback = nullptr ) = 0;								// disconnect.
 	virtual void create_queue( const std::string& queueName, std::function<void(bool)> callback ) = 0;					// create new queue.
 	virtual void delete_queue(const std::string& queueName, std::function<void(bool)> callback) = 0;					// delete queue.

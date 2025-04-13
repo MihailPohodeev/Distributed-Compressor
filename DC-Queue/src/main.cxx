@@ -1,7 +1,15 @@
+#include <boost/asio.hpp>
 #include <iostream>
 
-int main()
-{
+#include <ClientsManager.hxx>
 
+using namespace boost::asio;
+
+io_context io;
+
+int main(int argc, char** argv)
+{
+	ClientsManager clientsManager(io);
+	io.run();
 	return 0;
 }

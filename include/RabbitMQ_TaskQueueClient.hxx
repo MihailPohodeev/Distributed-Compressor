@@ -26,8 +26,7 @@ public:
 	// destructor.
 	~RabbitMQ_TaskQueueClient();
 
-	void connect(  const std::string& hostname,const std::string& user,
-                                const std::string& password, std::function<void(bool)> callback ) override;					// connect to queue-server.
+	void connect( const QueueParams& qp, std::function<void(bool)> callback ) override;							// connect to queue-server.
         void disconnect( std::function<void()> callback = nullptr ) override;									// disconnect.
         void create_queue( const std::string& queueName, std::function<void(bool)> callback ) override;						// create new queue.
         void delete_queue(const std::string& queueName, std::function<void(bool)> callback) override;						// delete queue.
