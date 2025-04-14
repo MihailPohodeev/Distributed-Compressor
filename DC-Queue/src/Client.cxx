@@ -9,7 +9,8 @@ Client::Client(ip::tcp::socket socket) : socket_(std::move(socket)) {}
 void Client::send_data(const std::string& data, std::function<void(bool)> callback)
 {
 	std::shared_ptr< std::lock_guard<std::mutex> > lock_ptr = std::make_shared< std::lock_guard<std::mutex> >(socket_sending_mutex_);
-	async_write(socket_, buffer(data), [this, callback, lock_ptr](boost::system::error_code ec, size_t bytes)
+	std::vector<char> result(data.begin(), data.end() + 1);
+	async_write(socket_, buffer(result), [this, callback, lock_ptr](boost::system::error_code ec, size_t bytes)
 			{
 				if (callback)
 				{
@@ -25,40 +26,37 @@ void Client::receive_data(std::function<void(bool, std::shared_ptr<json>)> callb
 {
 	std::shared_ptr< std::lock_guard<std::mutex> > lock_ptr 	= std::make_shared< std::lock_guard<std::mutex> >(socket_receiving_mutex_);
 	std::shared_ptr< std::vector<char> > buffer_ptr 		= std::make_shared< std::vector<char> >(1024);
-	std::shared_ptr< std::vector<char> > accumulate_buffer_ptr	= std::make_shared< std::vector<char> >(1024);
+	std::shared_ptr< std::vector<char> > accumulate_buffer_ptr	= std::make_shared< std::vector<char> >(0);
 
 	socket_.async_read_some( buffer(*buffer_ptr), [this, buffer_ptr, accumulate_buffer_ptr, lock_ptr, callback](const boost::system::error_code& ec, size_t bytes_transferred)
 	{
 		if (!ec && bytes_transferred > 0)
 		{
-			std::cout << "Income : " << std::string( buffer_ptr->begin(), buffer_ptr->end() ) + "\n";
-			/*
-			auto& buf = *read_buffer_;
-			size_t search_start = buf.size() - bytes_transferred;
-	
-			auto begin = buf.begin() + search_start;
-			auto end = buf.end();
+			accumulate_buffer_ptr->insert(accumulate_buffer_ptr->end(), buffer_ptr->begin(), buffer_ptr->begin() + bytes_transferred);
+			auto null_pos = std::find(accumulate_buffer_ptr->begin(), accumulate_buffer_ptr->end(), '\0');
 
-			while (true) 
+			while (null_pos != accumulate_buffer_ptr->end())
 			{
-				auto null_pos = std::find(begin, end, '\0');
-		
-				if (null_pos == end)
+				try
 				{
-					accumulation_buffer_.insert(accumulation_buffer_.end(), begin, end);
-					break;
+					std::string json_str(accumulate_buffer_ptr->begin(), null_pos);
+					std::shared_ptr<json> request = std::make_shared<json>( json::parse(json_str) );
+
+					if (callback)
+						callback(true, request);
 				}
-		
-				accumulation_buffer_.insert( accumulation_buffer_.end(), begin, null_pos);
-		
-				if (!accumulation_buffer_.empty()) {
-					callback_({accumulation_buffer_.begin(), accumulation_buffer_.end()});
-					accumulation_buffer_.clear();
+				catch (const json::parse_error& e)
+				{
+					std::cerr << "Can't parse json : " << e.what() << '\n';
+					if (callback)
+						callback(false, nullptr);
+					accumulate_buffer_ptr->clear();
 				}
-				begin = null_pos + 1;
+
+				auto next_pos = null_pos + 1;
+				accumulate_buffer_ptr->erase(accumulate_buffer_ptr->begin(), next_pos);
+				null_pos = std::find(accumulate_buffer_ptr->begin(), accumulate_buffer_ptr->end(), '\0');
 			}
-			buf.erase(buf.begin(), begin);
-			*/
 		}
 		else if (ec != boost::asio::error::operation_aborted)
 		{

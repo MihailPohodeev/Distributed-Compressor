@@ -74,6 +74,8 @@ int main( int argc, char** argv )
 	// create queue client for communication with Queue-server.
 	std::shared_ptr< TaskQueueClient > queueClient;
 
+	std::cout << "Queue-Type : " << (queueParams.queueType == QueueType::RabbitMQ ? "RabbitMQ\n" : (queueParams.queueType == QueueType::DC_Queue ? "DC-Queue\n" : "None\n"));
+
 	if (queueParams.queueType == QueueType::RabbitMQ)
 		queueClient = std::make_shared< RabbitMQ_TaskQueueClient >(io);
 	else if (queueParams.queueType == QueueType::DC_Queue)

@@ -15,7 +15,20 @@ void ClientsManager::accept()
 				if (!ec)
 				{
 					std::shared_ptr<Client> client_ptr = std::make_shared<Client>(std::move(socket));
-					client_ptr->receive_data(nullptr);
+					std::shared_ptr< std::function<void(bool, std::shared_ptr<json>)> > handle_ptr =
+					std::make_shared< std::function<void(bool, std::shared_ptr<json>)> >
+					(
+						[handle_ptr, client_ptr](bool success, std::shared_ptr<json> requestJSON)
+						{
+							if (!success)
+								std::cout << "failed! data can't be handled!\n";
+							else
+								std::cout << "success data receiving!\n";
+							client_ptr->receive_data(*handle_ptr);
+						}
+					);
+
+					client_ptr->receive_data(*handle_ptr);
 					clients_.push_back( client_ptr );
 				}
 				accept();

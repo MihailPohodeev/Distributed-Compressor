@@ -65,7 +65,8 @@ void DC_Queue_TaskQueueClient::unsubscribe(std::function<void()> callback)
 void DC_Queue_TaskQueueClient::send_data(const std::string& data)
 {
 	std::shared_ptr< std::lock_guard<std::mutex> > lock_ptr = std::make_shared< std::lock_guard<std::mutex> >(socket_mutex_);
-	async_write(socket_, buffer(data), [lock_ptr, this](boost::system::error_code ec, size_t bytes)
+	std::vector<char> result(data.begin(), data.end() + 1);
+	async_write(socket_, buffer(result), [lock_ptr, this](boost::system::error_code ec, size_t bytes)
 						{
 							if (ec)
 							{
