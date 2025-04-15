@@ -89,9 +89,9 @@ This project requires some additional libraries:
 
 1. Boost
 2. LibArchive
-3.AMQP-CPP
+3. AMQP-CPP
 
-Before building, you should install these dependencies. For example, use `apt install libarchive-dev libboost-all-dev`. It is recommended to build AMQP-CPP from source.
+Before building, you should install these dependencies. For example, use `apt install libarchive-dev libboost-all-dev`. It is recommended to build like dynamic library AMQP-CPP from source (https://github.com/CopernicaMarketingSoftware/AMQP-CPP).
 
 Next, go to the root directory of the project and build the project using CMake.
 
