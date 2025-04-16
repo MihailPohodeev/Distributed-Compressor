@@ -6,6 +6,7 @@
 #include <boost/asio.hpp>
 
 #include <Client.hxx>
+#include <QueueManager.hxx>
 
 #define STANDARD_DC_QUEUE_PORT 15651
 
@@ -14,7 +15,8 @@ using namespace boost::asio;
 class ClientsManager
 {
 	boost::asio::io_context& io_context_;
-	std::list<std::shared_ptr<Client>> clients_;
+	std::list< std::shared_ptr<Client> > clients_;
+	std::shared_ptr<QueueManager> queueManager_;
 
 	ip::tcp::acceptor acceptor_;
 

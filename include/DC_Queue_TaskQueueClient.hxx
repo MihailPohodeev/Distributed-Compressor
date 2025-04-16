@@ -10,17 +10,17 @@
 #include <boost/asio.hpp>
 #include <TaskQueueClient.hxx>
 #include <QueueParams.hxx>
+#include <DC_QueueChannel.hxx>
 
 using namespace boost::asio;
 
 // DC_Queue_TaskQueueClient is class that allows to communicate with DC-Queue server.
 class DC_Queue_TaskQueueClient : public TaskQueueClient
 {
-	ip::tcp::socket socket_;
-
-	mutable std::mutex socket_mutex_;		// guard socket from racecondition.
-
-	void send_data(const std::string& data);
+	// channel for asynchronous communication with Queue-server.
+	std::shared_ptr<DC_QueueChannel> dcQueueChannel_ptr;
+	// mutex for guarding asynchronous channel.
+	std::mutex channelMutex_;
 public:
 	// constructor.
 	explicit DC_Queue_TaskQueueClient(boost::asio::io_context& io);

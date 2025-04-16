@@ -4,24 +4,21 @@
 
 using json = nlohmann::json;
 
-DC_Queue_TaskQueueClient::DC_Queue_TaskQueueClient(boost::asio::io_context& io) : TaskQueueClient(io), socket_(io) {}
+DC_Queue_TaskQueueClient::DC_Queue_TaskQueueClient(boost::asio::io_context& io) : TaskQueueClient(io), dcQueueChannel_ptr( std::make_shared<DC_QueueChannel>(io) ) {}
 
 void DC_Queue_TaskQueueClient::connect(  const QueueParams& qp, std::function<void(bool)> callback )
 {
-	std::shared_ptr<ip::tcp::resolver> resolver = std::make_shared<ip::tcp::resolver>(io_context_);
-	resolver->async_resolve(qp.host, std::to_string(qp.port), [this, resolver, callback](boost::system::error_code ec, ip::tcp::resolver::results_type endpoints)
+	std::lock_guard<std::mutex> lock(channelMutex_);
+	dcQueueChannel_ptr->connect(qp.host, qp.port,
+		[callback]()
 		{
-			if (ec) {
-				std::cerr << "Can't resolve hosname-port!\n";
+			if (callback)
+				callback(true);
+		},
+		[callback]()
+		{
+			if (callback)
 				callback(false);
-			}
-			async_connect(socket_, endpoints, [this, callback](boost::system::error_code ec, ip::tcp::endpoint)
-				{
-					if (!ec)
-						callback(true);
-					else
-						callback(false);
-				});
 		});
 }
 
@@ -32,14 +29,18 @@ void DC_Queue_TaskQueueClient::disconnect( std::function<void()> callback)
 
 void DC_Queue_TaskQueueClient::create_queue( const std::string& queueName, std::function<void(bool)> callback )
 {
-	json responseJSON;
-	responseJSON["command"] 	= "create-queue";
-	responseJSON["queue-name"]	= queueName;
-
-	send_data(responseJSON.dump());
-	
-	if(callback)
-		callback(true);
+	std::lock_guard<std::mutex> lock(channelMutex_);
+	dcQueueChannel_ptr->declare_queue( queueName,
+		[callback]()
+		{
+			if (callback)
+				callback(true);
+		},
+		[callback]()
+		{
+			if (callback)
+				callback(false);
+		});
 }
 
 void DC_Queue_TaskQueueClient::delete_queue(const std::string& queueName, std::function<void(bool)> callback)
@@ -49,29 +50,26 @@ void DC_Queue_TaskQueueClient::delete_queue(const std::string& queueName, std::f
 
 void DC_Queue_TaskQueueClient::enqueue_task( const std::string& queueName, const std::string& taskBody, std::function<void(bool)> callback )
 {
-
+	std::lock_guard<std::mutex> lock(channelMutex_);
+	dcQueueChannel_ptr->publish( queueName, taskBody, 
+		[callback]()
+		{
+			if (callback)
+				callback(true);
+		},
+		[callback]()
+		{
+			if (callback)
+				callback(false);
+		});
 }
 
 void DC_Queue_TaskQueueClient::subscribe( const std::string& queueName, std::function<void(std::string)> messageCallback, std::function<void()> subscribedCallback)
 {
-
+	dcQueueChannel_ptr->subscribe(queueName, messageCallback, nullptr);
 }
 
 void DC_Queue_TaskQueueClient::unsubscribe(std::function<void()> callback)
 {
 
-}
-
-void DC_Queue_TaskQueueClient::send_data(const std::string& data)
-{
-	std::shared_ptr< std::lock_guard<std::mutex> > lock_ptr = std::make_shared< std::lock_guard<std::mutex> >(socket_mutex_);
-	std::vector<char> result(data.begin(), data.end() + 1);
-	async_write(socket_, buffer(result), [lock_ptr, this](boost::system::error_code ec, size_t bytes)
-						{
-							if (ec)
-							{
-								std::cerr << "Can't send data!\n";
-								return;
-							}
-						});
 }

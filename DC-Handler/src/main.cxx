@@ -4,6 +4,7 @@
 #include <boost/filesystem.hpp>
 #include <TaskPool.hxx>
 #include <RabbitMQ_TaskQueueClient.hxx>
+#include <DC_Queue_TaskQueueClient.hxx>
 #include <boost/asio.hpp>
 #include <nlohmann/json.hpp>
 #include <JSON_FilePacker.hxx>
@@ -31,7 +32,15 @@ int main(int argc, char** argv)
 	// --------------------------------------------------------------------------------
 
 	// create queue-client for communication with queue-server.
-	std::shared_ptr< TaskQueueClient > queueClient = std::make_shared< RabbitMQ_TaskQueueClient >(io);
+	std::shared_ptr< TaskQueueClient > queueClient;
+	
+	if (queueParams.queueType == QueueType::RabbitMQ)
+		queueClient = std::make_shared< RabbitMQ_TaskQueueClient >(io);
+	else if (queueParams.queueType == QueueType::DC_Queue)
+		queueClient = std::make_shared< DC_Queue_TaskQueueClient >(io);
+	else
+		std::runtime_error("Invalid Queue-type!\n");
+
 
 	// create task-pool with threads = logical cores of proccessor - 1 of 1.
 	unsigned int threadsCount = std::max(1u, std::thread::hardware_concurrency() - 1);
@@ -41,13 +50,13 @@ int main(int argc, char** argv)
 	std::shared_ptr<TaskExecutor> taskExecutor = std::make_shared<CompressorHandler>();
 
 	// connect to the queue-server.
-	queueClient->connect(queueParams.host, queueParams.username, queueParams.password, [queueClient, taskExecutor](bool connected) {
+	queueClient->connect(queueParams, [queueClient, taskExecutor](bool connected) {
 		if (!connected) {
-			std::cerr << "Failed to connect to RabbitMQ" << std::endl;
+			std::cerr << "Failed to connect to Queue-Server!\n";
 			exit(-1);
 		}
 
-		std::cout << "Successfuly connected to RabbitMQ" << std::endl;		
+		std::cout << "Successfuly connected to Queue-Server!\n";		
 
 		// subscribe on main-task queue.
 		queueClient->subscribe( standardMainQueueName, [queueClient, taskExecutor](std::string msg)

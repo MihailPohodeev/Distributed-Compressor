@@ -9,7 +9,7 @@ io_context io;
 
 int main(int argc, char** argv)
 {
-	ClientsManager clientsManager(io);
+	std::unique_ptr<ClientsManager> clientsManager = std::make_unique<ClientsManager>(io);
 	io.run();
 	return 0;
 }

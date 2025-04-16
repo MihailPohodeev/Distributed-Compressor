@@ -30,7 +30,7 @@ void printUsage(const std::string& programName) {
 boost::asio::io_context io;
 
 // timeout for automatic interruption after inactivity -> we didn't receive files during this timeout - interrupt handling.
-std::chrono::seconds timeout = std::chrono::seconds(5);
+std::chrono::seconds timeout = std::chrono::seconds(65);
 
 int main( int argc, char** argv )
 {
@@ -74,8 +74,6 @@ int main( int argc, char** argv )
 	// create queue client for communication with Queue-server.
 	std::shared_ptr< TaskQueueClient > queueClient;
 
-	std::cout << "Queue-Type : " << (queueParams.queueType == QueueType::RabbitMQ ? "RabbitMQ\n" : (queueParams.queueType == QueueType::DC_Queue ? "DC-Queue\n" : "None\n"));
-
 	if (queueParams.queueType == QueueType::RabbitMQ)
 		queueClient = std::make_shared< RabbitMQ_TaskQueueClient >(io);
 	else if (queueParams.queueType == QueueType::DC_Queue)
@@ -83,7 +81,6 @@ int main( int argc, char** argv )
 	else
 		std::runtime_error("Invalid Queue-type!\n");
 
-	std::cout << (queueClient == nullptr ? "null" : "not-null") << '\n';
 	queueClient->connect(queueParams, [directory, queueClient](bool connected) {
 		if (!connected) {
 			std::cerr << "Failed to connect to Queue-Server!\n";
@@ -92,15 +89,16 @@ int main( int argc, char** argv )
 
 		std::cout << "Successfuly connected to Queue-Server!\n";
 
-		/*
+		
 		auto fileHandling = [queueClient](fs::path directory, std::string user_queue)
 		{
+			
 			std::shared_ptr< boost::asio::steady_timer > timer	= std::make_shared< boost::asio::steady_timer >(io, timeout); // timer for canceling operation after inactivity.
 			std::shared_ptr< std::atomic<int> > outgoingFiles 	= std::make_shared< std::atomic<int> >(0);		// number of outgoing files.
 			std::shared_ptr< std::atomic<int> > incomingFiles 	= std::make_shared< std::atomic<int> >(0);		// number of incoming files.
 			std::shared_ptr< std::atomic<bool>> isSendingFinished 	= std::make_shared< std::atomic<bool> >(false);		// is files outgoing fineshed -> 
 																	// -> we can compare outgoing and incoming files.
-
+		
 			// subscribing on result queue and storing results of compressing.
 			queueClient->subscribe( user_queue, [user_queue, outgoingFiles, incomingFiles, isSendingFinished, timer, queueClient](std::string msg)
 			{
@@ -140,6 +138,7 @@ int main( int argc, char** argv )
 				}
 
 			}, nullptr );
+			
 
 			// in next scope we create FileSeeker, that recursively traversing directory and add task in lambda-function to TaskPool.
 			// after all addition in TaskPool we should wait, while TaskPool complete work.
@@ -174,10 +173,9 @@ int main( int argc, char** argv )
 				queueClient->delete_queue( user_queue, [](bool status) { io.stop(); } );
 			});
 		};
-		*/
 
 		// create main queue - if it doesn't exist.
-		queueClient->create_queue( standardMainQueueName, [queueClient, /*fileHandling,*/ directory ](bool success) {
+		queueClient->create_queue( standardMainQueueName, [queueClient, fileHandling, directory ](bool success) {
 			if (!success)
 			{
                         	std::cerr << "Can't create main queue : " << standardMainQueueName << '\n';
@@ -186,7 +184,7 @@ int main( int argc, char** argv )
 			
 			std::cout << "Successfuly created new main queue : " << standardMainQueueName << '\n';
 
-			/*
+			
 
 			// generate unique domen for receiving data from handlers.
 			std::string my_unique_domen =   boost::asio::ip::host_name() +
@@ -207,8 +205,6 @@ int main( int argc, char** argv )
 				// if we have access to both queues -> start files handling.
 				fileHandling( directory, my_unique_domen );
                         });
-			*/
-
 		});
 	});
 

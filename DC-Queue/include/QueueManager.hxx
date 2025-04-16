@@ -1,6 +1,7 @@
 #ifndef QUEUE_MANAGER_HXX
 #define QUEUE_MANAGER_HXX
 
+#include <mutex>
 #include <string>
 #include <memory>
 #include <unordered_map>
@@ -10,10 +11,13 @@
 
 class QueueManager
 {
-	std::unordered_map<std::string, std::shared_ptr<TaskQueue>> queues_
+	// mutex for guarding for hash-table.
+	std::mutex mapMutex_;
+	// hash-table for saving TaskQueues by name.
+	std::unordered_map<std::string, std::shared_ptr<TaskQueue>> queues_;
 public:
 	// constructor
-	QueueManager();
+	QueueManager() = default;
 
 	// -----------------------------------
 	// remove unnesessary constructions.
@@ -27,12 +31,15 @@ public:
 	// -----------------------------------
 	// this methonds change 'queues_' unordered_map content
 	// we should guard this data structure.
-	void add_queue(const std::string& queueName);
+	void create_queue(const std::string& queueName);
 	void remove_queue(const std::string& queueName);
 	// -----------------------------------
 	
-	void add_subscriber(const std::string& queueName, std::shared_ptr<Client> client);
-	void remove_subscriber(const std::string& queueName, std::shared_ptr<Client> client);
+	// push new task in TaskQueue.
+	bool push_task(const std::string& queueName, const std::string& task);
+
+	bool add_subscriber(const std::string& queueName, std::shared_ptr<Client> client_ptr);
+	bool remove_subscriber(const std::string& queueName, std::shared_ptr<Client> client_ptr);
 	
 };
 

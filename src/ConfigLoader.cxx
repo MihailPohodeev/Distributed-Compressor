@@ -106,12 +106,14 @@ bool ConfigLoader::load_config(QueueParams& qp) const
 
 		if (queueType == "RabbitMQ")
 		{
+			qp.queueType = QueueType::RabbitMQ;
 			qp.username = queueJSON.at("username");
 			qp.password = queueJSON.at("password");
 			qp.host	    = queueJSON.at("hostname");
 		}
 		else if (queueType == "DC-Queue")
 		{
+			qp.queueType = QueueType::DC_Queue;
 			qp.host = queueJSON.at("hostname");
 		}
 		else

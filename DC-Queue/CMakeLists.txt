@@ -1,16 +1,16 @@
 cmake_minimum_required(VERSION 3.12)
-project(DC-Handler LANGUAGES CXX)
+project(DC-Queue LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Boost 1.66 REQUIRED COMPONENTS filesystem system)
-find_package(LibArchive REQUIRED)
-find_package(amqpcpp REQUIRED)
 
-add_library(DCHandlerSources
-        src/CompressHandler.cxx
-	src/DC_Handler_ConfigLoader.cxx
+add_library(DCQueueSources
+	src/Client.cxx
+	src/ClientsManager.cxx
+	src/QueueManager.cxx
+	src/TaskQueue.cxx
 	../src/ConfigLoader.cxx
         ../src/DC_QueueChannel.cxx
         ../src/DC_Queue_TaskQueueClient.cxx
@@ -19,18 +19,17 @@ add_library(DCHandlerSources
         ../src/TaskQueueClient.cxx
 )
 
-target_include_directories(DCHandlerSources
+target_include_directories(DCQueueSources
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/../include
 )
 
-add_executable(distributed_compressor_handler src/main.cxx)
-target_link_libraries(distributed_compressor_handler
+add_executable(distributed_compressor_queue src/main.cxx)
+target_link_libraries(distributed_compressor_queue
         PRIVATE
-	DCHandlerSources
+        DCQueueSources
         Boost::filesystem
         Boost::system
-	archive
-        amqpcpp
 )
+
